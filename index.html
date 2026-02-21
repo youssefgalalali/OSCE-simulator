@@ -1,17 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORE Simulator - Mic Unlocked</title>
-    <style>body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }</style>
+    <title>ORE OSCE Simulator - Voice Bridge</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #wrapper { display: flex; flex-direction: column; height: 100vh; }
+        /* The Mic Bar stays outside the blocked Google area */
+        #mic-bar { background: #2c3e50; color: white; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #d93025; }
+        #btn-mic { background: #d93025; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        #btn-mic.recording { background: #ff4d4d; animation: pulse 1s infinite; }
+        #status-text { font-size: 14px; color: #ecf0f1; }
+        iframe { flex-grow: 1; border: none; }
+        @keyframes pulse { 50% { opacity: 0.6; } }
+    </style>
 </head>
 <body>
-    <iframe 
-        src="https://script.google.com/macros/s/AKfycbxeinvZZ4jFQwYk8w6mdACAz-rr95TttXXKvhPR761ugfAFANICiXvAcD7JnunkxrKG5w/exec" 
-        allow="microphone *; autoplay *; speaker-selection *;" 
-        sandbox="allow-forms allow-modals allow-popups allow-scripts allow-same-origin allow-downloads"
-        style="width:100%; height:100vh; border:none;">
-    </iframe>
+    <div id="wrapper">
+        <div id="mic-bar">
+            <div><strong>🎤 ORE VOICE CONTROLLER</strong></div>
+            <div id="status-text">Click "Start Speaking" to begin</div>
+            <button id="btn-mic" onclick="toggleMic()">START SPEAKING</button>
+        </div>
+        <iframe id="osce-frame" src="https://script.google.com/u/0/home/projects/1RNeslmQTnctlu4rtcls9PqgN6WdJQUs3iIfkW1z0lGXOZlPu_J-FWx3o/edit?pli=1"></iframe>
+    </div>
+
+    <script>
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-GB';
+        recognition.continuous = false; // Stops automatically when you stop talking
+        let isRecording = false;
+
+        function toggleMic() {
+            if (!isRecording) {
+                recognition.start();
+                isRecording = true;
+                document.getElementById('btn-mic').innerText = "🛑 STOP & SEND";
+                document.getElementById('btn-mic').classList.add('recording');
+                document.getElementById('status-text').innerText = "Listening to your history...";
+            } else {
+                recognition.stop();
+            }
+        }
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            // SEND THE TEXT TO THE GOOGLE IFRAME
+            const frame = document.getElementById('osce-frame').contentWindow;
+            frame.postMessage({ type: 'VOICE_INPUT', text: transcript }, '*');
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            document.getElementById('btn-mic').innerText = "START SPEAKING";
+            document.getElementById('btn-mic').classList.remove('recording');
+            document.getElementById('status-text').innerText = "Message Sent to Patient.";
+        };
+    </script>
 </body>
 </html>
